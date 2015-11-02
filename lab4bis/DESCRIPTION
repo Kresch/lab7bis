@@ -1,0 +1,13 @@
+Package: lab4bis
+Type: Package
+Title: Linear regression
+Version: 1.0
+Date: 2015-09-15
+Author: Niclas Lovsjö, Maxime Bonneau   
+Maintainer: <niclas.lovsjo@me.com>
+Description: Multiple linear regression. Mimics the lm-fun in R.
+License: GPL-2
+Suggests: testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

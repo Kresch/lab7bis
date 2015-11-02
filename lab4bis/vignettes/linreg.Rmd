@@ -1,0 +1,63 @@
+---
+title: "Linreg Vignette"
+author: Maxime Bonneau, Niclas Lovsjö
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Linreg Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(lab4bis)
+library(ggplot2)
+library(gridExtra)
+```
+
+##Description
+Linreg is a package that performs linear regression. It takes a *formula* of the form *Y~**X***, where **X** and **Y** are vector-valued, and a *data-frame* from which we can take the values of **Y** and **X**. 
+
+### Attributes:
+The function *Linreg* returns a list of the class *Linreg*, having the elements: coefficients, resid, df.residual,rank, call, fitted.values, rstudent. 
+
+### Methods:   
+  *     resid(X):    
+             Gives the residuals as a vector.  
+  *     pred(X, Z):    
+        Gives the predicted values of the linear model X for the values of the variable Z.  
+  *     print(X):  
+        Returns the called formula and the estimate of the coefficients.  
+  *     plot(X):  
+        Plots the Residuals vs. fitted values and Scale-location.  
+  *     coef(X):  
+        Returns a named vector of the estimate of the coefficients.  
+
+### Example
+```{r}
+our_linear_regression <- linreg(Petal.Length~Sepal.Length,iris)
+print(our_linear_regression)
+```
+
+
+```{r}
+plot(our_linear_regression)
+```
+
+```{r}
+coef(our_linear_regression)
+```
+
+```{r}
+resid(our_linear_regression)
+```
+
+```{r}
+
+pred(our_linear_regression, 2)
+```
+
+
+> "He who uses linreg, might just as well use lm ~ Unknown thinker"
+
+

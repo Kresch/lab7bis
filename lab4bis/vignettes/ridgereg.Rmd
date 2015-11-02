@@ -1,0 +1,136 @@
+---
+title: "ridgereg"
+author: "Niclas Lovsjö, Maxime Bonneau"
+date: "11 oktober 2015"
+output: pdf_document
+---
+
+We have built the function ridgereg, which makes ridge regression out of a dataset by being fed a formula and some data. We can also define a lambda, which the default is set to 0. This is done like this,
+
+```{r,message=FALSE}
+library(lab4bis)
+library(mlbench)
+data(iris)
+model1<-ridgereg(Sepal.Length~Sepal.Width+Petal.Length,iris)
+model1$coefficients
+model2<-ridgereg(Sepal.Length~Sepal.Width+Petal.Length,iris, lambda=2)
+model2$coefficients
+```
+  
+Predictions are done by,
+  
+```{r}
+newdata<-data.frame(c(1,2,3),c(4,3,2))
+predict(model2,newdata)
+```
+
+
+Now we will comment on the caret-package part. We have decided to use our own API data from lab5. In there we have data of the election of year 2014 in Sweden. We will try to build a model explaining the size of a city, in terms of people allowed to vote, by the distribution of votes the parties in that particular city has. For example, say the distribution of the great little city Filipstad has 40%(S),30%(SD),20%(V),5%(M). Then can we find a good prediction of the size of this city? The features will then be the party percentages.  
+  
+First we divide the data into a training and a test set:
+```{r}
+#extract the data we need and partition:
+library(lattice)
+library(caret)
+divide_data<-function(theData){
+  data <- data.frame(theData[,unlist(lapply(colnames(theData),function(y) substr(y,start=nchar(y)-2,stop=nchar(y))))=="tal"])
+  data<-data.frame(data,theData$Rostb)
+  colnames(data)<-c(colnames(theData)[unlist(lapply(colnames(theData),function(y) substr(y,start=nchar(y)-2,stop=nchar(y))))=="tal"],"Rostb")
+  set.seed(12345)
+  in_train <- createDataPartition(y = data$Rostb,p=0.75,list = FALSE)
+  train <- theData[in_train,]
+  test<-theData[-in_train,]
+  out<-list(training=train,testing=test)
+  #how to actually get the coefficients???
+  return(out)
+}
+data<-divide_data(theData)
+```
+  
+This is how the data will look like:
+```{r}
+attach(data)
+training[1:2,]
+```
+  
+Then we fit a linear model using the caret package, and also a linear model using foreward-selection.  
+  
+```{r,eval=FALSE}
+fitControl <- trainControl(## 10-fold CV
+  method = "repeatedcv",
+  number = 10,
+  ## repeated ten times
+  repeats = 10)
+set.seed(12345)
+model1<-train(training$Rostb~.,data=training,method="lm",trControl=fitControl)
+set.seed(12345)
+model2<-train(training$Rostb~.,data=training,method="leapForward",trControl=fitControl)
+```
+  
+The performance on the training set is that we get an root mse of 49129 for all of the features, which seem very high. Doing the forward-selection we get that the model with 4 features performs the best having a root mse of 1208, which is a clear improvement from all the features. The full model also only explains 0.22 while the 4 feature model explains .99. Perhaps this is even "too good", and one could suspect that this way of doing this analysis isnt that well suited. 
+  
+Now we wanna use our own ridgereg-function inside $\textit{caret}$ for different values of $\lambda$.  
+  
+```{r}
+reg<-list(type="Regression",library="lab4bis")
+
+reg$parameters<-data.frame(parameter="lambda",
+                             class="numeric",
+                             label="lambda")
+reg$fit<- function(x, y, param,lambda, last,classProbs, ...) {
+  out<-as.data.frame(x)
+  respname<-deparse(substitute(Rostb))
+  #temp<-strsplit(respname,"$",fixed=TRUE)[[1]][2]
+  out<-subset(out,select=-c(eval(parse(text=Rostb))))
+  formula<-paste("Rostb ~",colnames(out)[6])
+  
+  temp<-data.frame(out[,6])
+  temp2<-data.frame(testing[,6])
+  if(ncol(out) > 1){
+    for(i in c(8,10,12,14,16,18,20,22,24,26,28)){
+      temp2<-cbind(temp2,testing[,i])
+      temp<-cbind(temp,out[,i])
+      formula <- paste(formula, "+", names(out)[i], sep="")
+    }
+  }
+  colnames(temp)<-colnames(out)[c(6,8,10,12,14,16,18,20,22,24,26,28)]
+  colnames(temp2)<-colnames(out)[c(6,8,10,12,14,16,18,20,22,24,26,28)]
+  out<-temp
+  testing<-temp2
+  out<-cbind(out,x$Rostb)
+  formula <- as.formula(formula)
+  model <- ridgereg(formula = formula, data=training,lambda= 5)
+  return(model)
+ }
+
+reg$predict<-function(modelFit, newdata, preProc = NULL, submodels = NULL){
+  predict(modelFit,newdata)
+}
+
+reg$prob<- list(NULL)
+
+reg$sort <- function(x) x[order(x$lambda),]
+
+reg$label<-"Ridge Regression"
+
+reg$grid<-function(x,y,len=NULL, search="grid"){
+  data.frame(#lambda=seq(from=20, to=45, by=1))
+             lambda=seq(from=0, to=200, by=10))
+}
+set.seed(12345)
+ridgeFit <- caret::train( y = training$Rostb,
+                         x = training,
+                       method = reg,
+                       trControl = fitControl
+)
+```
+
+## "dplyr" package
+
+Thanks to "dplyr" package, we were able to calculate the mean delays from the datasets from nycflights13 package.
+This is a package in which we can find delays for several flights from New York City airports to some other American airports. We decided to use 'ggmap' to get a good visualization of these delays.
+
+```{r}
+visualize_airport_delays()
+```
+
